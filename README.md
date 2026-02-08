@@ -53,6 +53,7 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 ## Starting CopilotKit App
 1. Open terminal 2
 2. Change directory `cd copilotkit-app`
+3. Install CopilotKit Packages `npm install @copilotkit/react-ui @copilotkit/react-core @copilotkit/runtime @ag-ui/client`
 3. Execute `npm run dev`
 
 ## Launch Chabot in Browser
