@@ -5,7 +5,6 @@ import {
   Box,
   Card,
   CardContent,
-  CardActionArea,
   Typography,
   IconButton,
   Tooltip,
@@ -43,8 +42,10 @@ export default function SessionCard({ session, onSelect, onDelete }: SessionCard
   return (
     <Card
       elevation={0}
+      onClick={() => onSelect(session.id)}
       sx={{
         border: `1px solid ${theme.palette.divider}`,
+        cursor: 'pointer',
         transition: theme.transitions.create(['border-color', 'box-shadow'], {
           duration: theme.transitions.duration.short,
         }),
@@ -54,8 +55,7 @@ export default function SessionCard({ session, onSelect, onDelete }: SessionCard
         },
       }}
     >
-      <CardActionArea onClick={() => onSelect(session.id)} sx={{ p: 0 }}>
-        <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+      <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography
@@ -118,7 +118,6 @@ export default function SessionCard({ session, onSelect, onDelete }: SessionCard
             </Typography>
           </Box>
         </CardContent>
-      </CardActionArea>
     </Card>
   );
 }

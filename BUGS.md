@@ -67,4 +67,15 @@ Next.js version: 16.1.6 (Turbopack)
 
 5. Chat session name need to be YYYY-MMM-DD HH:MM:SS format.
 
-6. 
+6. Should be starting the adk_web_agent/agent.py with multiple agent instead of main.py.
+
+7. Agent should be running with include_thoughts=True
+
+    generate_content_config=GenerateContentConfig(
+        thinking_config=ThinkingConfig(
+            include_thoughts=True,
+            thinking_budget=1024,  # Increased budget for more thinking
+        )
+    ),
+
+8. doulble check the PRD.MD for the requirement. it need to be multi-agent with sub-agent.

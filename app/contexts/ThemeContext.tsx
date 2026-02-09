@@ -29,14 +29,16 @@ function getSystemPreference(): 'light' | 'dark' {
 export function AppThemeProvider({ children }: { children: React.ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>('system');
   const [systemPref, setSystemPref] = useState<'light' | 'dark'>('light');
+  const [mounted, setMounted] = useState(false);
 
-  // Load saved preference on mount
+  // Load saved preference on mount and mark as hydrated
   useEffect(() => {
     const saved = localStorage.getItem('theme-mode') as ThemeMode | null;
     if (saved && ['light', 'dark', 'system'].includes(saved)) {
       setModeState(saved);
     }
     setSystemPref(getSystemPreference());
+    setMounted(true);
   }, []);
 
   // Listen to system preference changes
@@ -56,6 +58,11 @@ export function AppThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useMemo(() => (resolvedMode === 'dark' ? darkTheme : lightTheme), [resolvedMode]);
 
   const value = useMemo(() => ({ mode, resolvedMode, setMode }), [mode, resolvedMode, setMode]);
+
+  // Prevent hydration mismatch: render children without MUI theme until client-side mount
+  if (!mounted) {
+    return <>{children}</>;
+  }
 
   return (
     <ThemeContext.Provider value={value}>
