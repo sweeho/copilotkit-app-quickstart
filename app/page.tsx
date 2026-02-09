@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Box } from '@mui/material';
+import { CopilotKit } from '@copilotkit/react-core';
 import { useAuth } from './contexts/AuthContext';
 import { useSession } from './contexts/SessionContext';
 import LoginScreen from './components/Auth/LoginScreen';
@@ -57,32 +58,40 @@ export default function Page() {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      <Header
-        username={user?.username}
-        thoughtsEnabled={thoughtsEnabled}
-        onThoughtsToggle={() => setThoughtsEnabled((prev) => !prev)}
-        onNewSession={handleNewSession}
-        showSessionControls={currentView === 'chat'}
-      />
-
-      {currentView === 'sessions' && (
-        <SessionList
-          sessions={sessions}
-          onSelectSession={handleSelectSession}
-          onDeleteSession={deleteSession}
-          onCreateSession={handleNewSession}
-        />
-      )}
-
-      {currentView === 'chat' && activeSession && (
-        <ChatView
-          session={activeSession}
+    <CopilotKit
+      runtimeUrl="/api/copilotkit"
+      agent="my_agent"
+      threadId={activeSession?.id}
+      key={activeSession?.id ?? 'no-session'}
+    >
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <Header
+          username={user?.username}
           thoughtsEnabled={thoughtsEnabled}
-          onBackToSessions={handleBackToSessions}
+          onThoughtsToggle={() => setThoughtsEnabled((prev) => !prev)}
+          onNewSession={handleNewSession}
+          onLogout={logout}
+          showSessionControls={currentView === 'chat'}
         />
-      )}
-    </Box>
+
+        {currentView === 'sessions' && (
+          <SessionList
+            sessions={sessions}
+            onSelectSession={handleSelectSession}
+            onDeleteSession={deleteSession}
+            onCreateSession={handleNewSession}
+          />
+        )}
+
+        {currentView === 'chat' && activeSession && (
+          <ChatView
+            session={activeSession}
+            thoughtsEnabled={thoughtsEnabled}
+            onBackToSessions={handleBackToSessions}
+          />
+        )}
+      </Box>
+    </CopilotKit>
   );
 }
 

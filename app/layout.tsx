@@ -1,4 +1,3 @@
-import { CopilotKit } from "@copilotkit/react-core";
 import "@copilotkit/react-ui/styles.css";
 import "@fontsource/inter/300.css";
 import "@fontsource/inter/400.css";
@@ -22,9 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppThemeProvider>
           <AuthProvider>
             <SessionProvider>
-              <CopilotKit runtimeUrl="/api/copilotkit" agent="my_agent">
-                {children}
-              </CopilotKit>
+              {children}
             </SessionProvider>
           </AuthProvider>
         </AppThemeProvider>

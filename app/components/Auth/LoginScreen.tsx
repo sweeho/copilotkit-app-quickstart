@@ -9,7 +9,6 @@ import {
   Button,
   Typography,
   useTheme,
-  Fade,
 } from '@mui/material';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
@@ -41,18 +40,22 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
   );
 
   return (
-    <Fade in timeout={600}>
-      <Box
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.palette.background.default,
-          p: 3,
-        }}
-      >
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.palette.background.default,
+        p: 3,
+        '@keyframes fadeIn': {
+          from: { opacity: 0, transform: 'translateY(8px)' },
+          to: { opacity: 1, transform: 'translateY(0)' },
+        },
+        animation: 'fadeIn 0.6s ease-out',
+      }}
+    >
         <Card
           elevation={0}
           sx={{
@@ -137,7 +140,6 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
         >
           Powered by Google ADK & CopilotKit
         </Typography>
-      </Box>
-    </Fade>
+    </Box>
   );
 }

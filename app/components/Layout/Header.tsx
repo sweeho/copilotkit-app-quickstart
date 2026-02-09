@@ -4,6 +4,7 @@ import React from 'react';
 import { AppBar, Toolbar, Typography, Box, useTheme, IconButton, Tooltip } from '@mui/material';
 import AddCommentOutlinedIcon from '@mui/icons-material/AddCommentOutlined';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import ThemeToggle from './ThemeToggle';
 import ThoughtsToggle from './ThoughtsToggle';
 
@@ -12,6 +13,7 @@ interface HeaderProps {
   thoughtsEnabled: boolean;
   onThoughtsToggle: () => void;
   onNewSession: () => void;
+  onLogout?: () => void;
   showSessionControls?: boolean;
 }
 
@@ -20,6 +22,7 @@ export default function Header({
   thoughtsEnabled,
   onThoughtsToggle,
   onNewSession,
+  onLogout,
   showSessionControls = false,
 }: HeaderProps) {
   const theme = useTheme();
@@ -122,6 +125,20 @@ export default function Header({
                   {username.charAt(0).toUpperCase()}
                 </Typography>
               </Box>
+              {onLogout && (
+                <Tooltip title="Logout">
+                  <IconButton
+                    onClick={onLogout}
+                    size="small"
+                    sx={{
+                      color: theme.palette.text.secondary,
+                      '&:hover': { color: theme.palette.error.main },
+                    }}
+                  >
+                    <LogoutOutlinedIcon sx={{ fontSize: 18 }} />
+                  </IconButton>
+                </Tooltip>
+              )}
             </Box>
           )}
         </Box>
