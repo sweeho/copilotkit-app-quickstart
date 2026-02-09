@@ -1,33 +1,123 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Box, Typography, useTheme, Fade } from '@mui/material';
+import React, { useRef, useEffect } from 'react';
+import { Box, Typography, useTheme, Fade, Chip } from '@mui/material';
 import PsychologyOutlinedIcon from '@mui/icons-material/PsychologyOutlined';
-import type { AgentExecution } from '../../types/agent';
-import SubAgentCard from './SubAgentCard';
-import MainAgentReasoning from './MainAgentReasoning';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import AutorenewIcon from '@mui/icons-material/Autorenew';
+import { useAgentThoughts } from '../../hooks/useAgentThoughts';
+import type { ThoughtStep } from '../../types/agent';
 
-interface ThoughtsPanelProps {
-  executions: AgentExecution[];
+/** Maps backend agent_name values to display labels and colors */
+const agentMeta: Record<string, { label: string; color: string }> = {
+  root_agent: { label: 'Orchestrator', color: '#007AFF' },
+  research_agent: { label: 'Research Agent', color: '#5856D6' },
+  analysis_agent: { label: 'Analysis Agent', color: '#FF9500' },
+  summary_agent: { label: 'Summary Agent', color: '#34C759' },
+};
+
+function ThoughtItem({ step }: { step: ThoughtStep }) {
+  const theme = useTheme();
+  const meta = agentMeta[step.agent_name] || { label: step.agent_name, color: '#9E9E9E' };
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        gap: 1.5,
+        alignItems: 'flex-start',
+        py: 1,
+        px: 1,
+        borderRadius: 1.5,
+        backgroundColor:
+          step.status === 'running'
+            ? theme.palette.mode === 'dark'
+              ? 'rgba(255,255,255,0.03)'
+              : 'rgba(0,0,0,0.02)'
+            : 'transparent',
+        transition: 'background-color 0.3s ease',
+      }}
+    >
+      {/* Status icon */}
+      <Box sx={{ pt: 0.25, flexShrink: 0 }}>
+        {step.status === 'running' && (
+          <AutorenewIcon
+            sx={{
+              fontSize: 18,
+              color: meta.color,
+              animation: 'spin 1s linear infinite',
+              '@keyframes spin': {
+                '0%': { transform: 'rotate(0deg)' },
+                '100%': { transform: 'rotate(360deg)' },
+              },
+            }}
+          />
+        )}
+        {step.status === 'completed' && (
+          <CheckCircleOutlineIcon sx={{ fontSize: 18, color: '#34C759' }} />
+        )}
+        {step.status === 'error' && (
+          <ErrorOutlineIcon sx={{ fontSize: 18, color: '#FF3B30' }} />
+        )}
+      </Box>
+
+      {/* Content */}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.25 }}>
+          <Chip
+            label={meta.label}
+            size="small"
+            sx={{
+              height: 20,
+              fontSize: 11,
+              fontWeight: 600,
+              backgroundColor: `${meta.color}18`,
+              color: meta.color,
+              border: `1px solid ${meta.color}30`,
+            }}
+          />
+          {step.status === 'running' && (
+            <Typography
+              variant="caption"
+              sx={{
+                fontSize: 10,
+                color: meta.color,
+                fontWeight: 500,
+                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
+              }}
+            >
+              In Progress
+            </Typography>
+          )}
+        </Box>
+        <Typography
+          variant="body2"
+          sx={{
+            fontSize: 13,
+            color: theme.palette.text.secondary,
+            lineHeight: 1.5,
+          }}
+        >
+          {step.message}
+        </Typography>
+      </Box>
+    </Box>
+  );
 }
 
-export default function ThoughtsPanel({ executions }: ThoughtsPanelProps) {
+export default function ThoughtsPanel() {
   const theme = useTheme();
-  const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
+  const { thoughtStream, hasThoughts, activeThoughts } = useAgentThoughts();
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const toggleAgent = (id: string) => {
-    setExpandedAgents((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-
-  const latestExecution = executions.length > 0 ? executions[executions.length - 1] : null;
+  // Auto-scroll to bottom when new thoughts arrive
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [thoughtStream.length]);
 
   return (
     <Fade in>
@@ -60,11 +150,26 @@ export default function ThoughtsPanel({ executions }: ThoughtsPanelProps) {
           <Typography variant="h3" sx={{ fontWeight: 600, fontSize: 16 }}>
             Agent Thoughts
           </Typography>
+          {activeThoughts.length > 0 && (
+            <Chip
+              label={`${activeThoughts.length} active`}
+              size="small"
+              sx={{
+                ml: 'auto',
+                height: 20,
+                fontSize: 11,
+                fontWeight: 500,
+                backgroundColor: 'rgba(255,149,0,0.15)',
+                color: '#FF9500',
+                border: '1px solid rgba(255,149,0,0.3)',
+              }}
+            />
+          )}
         </Box>
 
         {/* Panel content */}
-        <Box sx={{ flex: 1, overflowY: 'auto', px: 2, py: 2 }}>
-          {!latestExecution ? (
+        <Box ref={scrollRef} sx={{ flex: 1, overflowY: 'auto', px: 1.5, py: 1.5 }}>
+          {!hasThoughts ? (
             <Box
               sx={{
                 textAlign: 'center',
@@ -74,39 +179,15 @@ export default function ThoughtsPanel({ executions }: ThoughtsPanelProps) {
             >
               <PsychologyOutlinedIcon sx={{ fontSize: 40, opacity: 0.3, mb: 1.5 }} />
               <Typography variant="body2" sx={{ opacity: 0.6 }}>
-                Agent orchestration details will appear here when you send a message.
+                Agent reasoning steps will stream here in real-time when you send a message.
               </Typography>
             </Box>
           ) : (
-            <>
-              {/* Main agent reasoning */}
-              <MainAgentReasoning execution={latestExecution} />
-
-              {/* Sub-agent cards */}
-              <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontWeight: 600,
-                    fontSize: 12,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    color: theme.palette.text.secondary,
-                    mb: 0.5,
-                  }}
-                >
-                  Sub-Agent Executions
-                </Typography>
-                {latestExecution.subAgents.map((sub) => (
-                  <SubAgentCard
-                    key={sub.id}
-                    subAgent={sub}
-                    isExpanded={expandedAgents.has(sub.id)}
-                    onToggle={() => toggleAgent(sub.id)}
-                  />
-                ))}
-              </Box>
-            </>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              {thoughtStream.map((step) => (
+                <ThoughtItem key={step.id} step={step} />
+              ))}
+            </Box>
           )}
         </Box>
       </Box>

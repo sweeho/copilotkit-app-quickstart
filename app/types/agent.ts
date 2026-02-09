@@ -1,5 +1,20 @@
 export type AgentStatus = 'pending' | 'running' | 'completed' | 'failed';
 
+// Real-time thought stream from the ADK backend via AG-UI protocol
+export interface ThoughtStep {
+  id: string;
+  agent_name: string;
+  message: string;
+  status: 'running' | 'completed' | 'error';
+  timestamp: string;
+  duration_ms?: number;
+}
+
+// State shape exposed by the ADK agent via useCoAgent
+export interface CoAgentState {
+  thought_stream: ThoughtStep[];
+}
+
 export interface ProcessingStep {
   id: string;
   description: string;
