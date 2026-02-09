@@ -10,6 +10,7 @@ const serviceAdapter = new ExperimentalEmptyAdapter();
 
 const runtime = new CopilotRuntime({
   agents: {
+    // @ts-expect-error - version mismatch between @ag-ui/client and @copilotkit internal
     my_agent: new HttpAgent({ url: "http://localhost:8000/" }),
   }
 });
