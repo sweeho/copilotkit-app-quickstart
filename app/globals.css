@@ -1,52 +1,35 @@
-@import "tailwindcss";
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-* {
+/* Base resets - MUI CssBaseline handles most resets */
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html,
+body {
   margin: 0;
   padding: 0;
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  height: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom styles for CopilotChat */
-.copilot-chat-container {
-  height: 100%;
-  width: 100%;
+/* Hide scrollbar on webkit but keep scrollable */
+::-webkit-scrollbar {
+  width: 6px;
 }
 
-/* Thought process styling */
-[data-copilot-dev-console="true"] {
-  background-color: #f8f9fa;
-  border-left: 3px solid #667eea;
-  padding: 0.5rem;
-  margin: 0.5rem 0;
-  font-size: 0.875rem;
-  color: #495057;
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
 }
