@@ -16,11 +16,24 @@ const runtime = new CopilotRuntime({
 });
 
 export const POST = async (req: NextRequest) => {
-  // Extract username, session, and thought toggle from request body or headers
+  // Extract user info from request headers
   const body = await req.json();
-  const username = req.headers.get('x-username') || body.username || 'demo_user';
-  const sessionId = req.headers.get('x-session-id') || body.sessionId || 'default';
+  const authHeader = req.headers.get('Authorization') || '';
   const showThoughts = req.headers.get('x-show-thoughts') || 'false';
+
+  // Extract user_id from JWT if present (for ADK user scoping)
+  let username = 'demo_user';
+  if (authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.slice(7);
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      username = payload.user_id || 'demo_user';
+    } catch {
+      // Fall back to demo_user if token parsing fails
+    }
+  }
+
+  const sessionId = req.headers.get('x-session-id') || body.sessionId || 'default';
 
   console.log('CopilotKit Request:', { username, sessionId, showThoughts });
 

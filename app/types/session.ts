@@ -1,9 +1,10 @@
 export interface Session {
   id: string;
   name: string;
+  userId?: string;
   description?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
   messageCount: number;
   lastMessagePreview?: string;
   agentCount?: number;

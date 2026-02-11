@@ -1,95 +1,127 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Box } from '@mui/material';
 import { CopilotKit } from '@copilotkit/react-core';
 import { useAuth } from './contexts/AuthContext';
 import { useSession } from './contexts/SessionContext';
+import { getStoredToken } from './services/api';
 import LoginScreen from './components/Auth/LoginScreen';
-import SessionList from './components/Session/SessionList';
 import Header from './components/Layout/Header';
+import EmptyState from './components/Layout/EmptyState';
+import LeftSidebar from './components/Sidebar/LeftSidebar';
 import ChatView from './components/Chat/ChatView';
-
-type AppView = 'login' | 'sessions' | 'chat';
+import AdminPanel from './components/Admin/AdminPanel';
 
 export default function Page() {
   const { user, isAuthenticated, login, logout } = useAuth();
   const {
     sessions,
     activeSession,
+    isLoading: sessionsLoading,
     createSession,
     selectSession,
+    renameSession,
     deleteSession,
-    clearActiveSession,
   } = useSession();
 
   const [thoughtsEnabled, setThoughtsEnabled] = useState(false);
-
-  const currentView: AppView = !isAuthenticated
-    ? 'login'
-    : activeSession
-      ? 'chat'
-      : 'sessions';
+  const [showAdmin, setShowAdmin] = useState(false);
 
   const handleLogin = useCallback(
-    (username: string) => {
-      login(username);
+    async (email: string, password: string) => {
+      await login(email, password);
     },
     [login]
   );
 
-  const handleNewSession = useCallback(() => {
+  const handleNewChat = useCallback(() => {
+    setShowAdmin(false);
     createSession();
   }, [createSession]);
 
   const handleSelectSession = useCallback(
     (id: string) => {
+      setShowAdmin(false);
       selectSession(id);
     },
     [selectSession]
   );
 
-  const handleBackToSessions = useCallback(() => {
-    clearActiveSession();
-  }, [clearActiveSession]);
+  const handleRenameSession = useCallback(
+    (id: string, newName: string) => {
+      renameSession(id, newName);
+    },
+    [renameSession]
+  );
 
-  if (currentView === 'login') {
+  const handleDeleteSession = useCallback(
+    (id: string) => {
+      deleteSession(id);
+    },
+    [deleteSession]
+  );
+
+  // Build CopilotKit headers with auth token
+  const copilotHeaders = useMemo(() => {
+    const token = getStoredToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    return headers;
+  }, [user]); // re-compute when user changes (login/logout)
+
+  // Login view
+  if (!isAuthenticated) {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
+  // Main layout: header + sidebar + content
   return (
     <CopilotKit
       runtimeUrl="/api/copilotkit"
       agent="my_agent"
       threadId={activeSession?.id}
       key={activeSession?.id ?? 'no-session'}
+      headers={copilotHeaders}
     >
-      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         <Header
-          username={user?.username}
+          username={user?.email}
           thoughtsEnabled={thoughtsEnabled}
           onThoughtsToggle={() => setThoughtsEnabled((prev) => !prev)}
-          onNewSession={handleNewSession}
           onLogout={logout}
-          showSessionControls={currentView === 'chat'}
+          showThoughtsToggle={!!activeSession}
         />
 
-        {currentView === 'sessions' && (
-          <SessionList
+        <Box sx={{ flex: 1, display: 'flex', pt: '64px', overflow: 'hidden' }}>
+          {/* Left sidebar — always visible */}
+          <LeftSidebar
             sessions={sessions}
+            activeSessionId={activeSession?.id ?? null}
+            isLoading={sessionsLoading}
+            isAdmin={user?.isAdmin ?? false}
+            onNewChat={handleNewChat}
             onSelectSession={handleSelectSession}
-            onDeleteSession={deleteSession}
-            onCreateSession={handleNewSession}
+            onRenameSession={handleRenameSession}
+            onDeleteSession={handleDeleteSession}
+            onAdminPanel={() => setShowAdmin(true)}
           />
-        )}
 
-        {currentView === 'chat' && activeSession && (
-          <ChatView
-            session={activeSession}
-            thoughtsEnabled={thoughtsEnabled}
-            onBackToSessions={handleBackToSessions}
-          />
-        )}
+          {/* Content area */}
+          {showAdmin ? (
+            <AdminPanel
+              currentUserId={user?.email ?? ''}
+              onClose={() => setShowAdmin(false)}
+            />
+          ) : activeSession ? (
+            <ChatView
+              session={activeSession}
+              thoughtsEnabled={thoughtsEnabled}
+            />
+          ) : (
+            <EmptyState onNewChat={handleNewChat} />
+          )}
+        </Box>
       </Box>
     </CopilotKit>
   );

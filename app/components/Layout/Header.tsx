@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { AppBar, Toolbar, Typography, Box, useTheme, IconButton, Tooltip } from '@mui/material';
-import AddCommentOutlinedIcon from '@mui/icons-material/AddCommentOutlined';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import ThemeToggle from './ThemeToggle';
@@ -12,18 +11,16 @@ interface HeaderProps {
   username?: string;
   thoughtsEnabled: boolean;
   onThoughtsToggle: () => void;
-  onNewSession: () => void;
   onLogout?: () => void;
-  showSessionControls?: boolean;
+  showThoughtsToggle?: boolean;
 }
 
 export default function Header({
   username,
   thoughtsEnabled,
   onThoughtsToggle,
-  onNewSession,
   onLogout,
-  showSessionControls = false,
+  showThoughtsToggle = false,
 }: HeaderProps) {
   const theme = useTheme();
 
@@ -70,17 +67,8 @@ export default function Header({
 
         {/* Right: Controls */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {showSessionControls && (
+          {showThoughtsToggle && (
             <>
-              <Tooltip title="New session">
-                <IconButton
-                  onClick={onNewSession}
-                  size="small"
-                  sx={{ color: theme.palette.text.secondary }}
-                >
-                  <AddCommentOutlinedIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
               <ThoughtsToggle enabled={thoughtsEnabled} onToggle={onThoughtsToggle} />
               <Box
                 sx={{

@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Box, IconButton, Tooltip, Typography, useTheme } from '@mui/material';
-import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import { Box, Typography, useTheme } from '@mui/material';
 import { CopilotChat } from '@copilotkit/react-ui';
 import { useCoAgentStateRender } from '@copilotkit/react-core';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
@@ -13,13 +12,11 @@ import type { CoAgentState } from '../../types/agent';
 interface ChatViewProps {
   session: Session;
   thoughtsEnabled: boolean;
-  onBackToSessions: () => void;
 }
 
 export default function ChatView({
   session,
   thoughtsEnabled,
-  onBackToSessions,
 }: ChatViewProps) {
   const theme = useTheme();
 
@@ -73,8 +70,8 @@ export default function ChatView({
       sx={{
         display: 'flex',
         flexDirection: 'row',
-        height: '100vh',
-        pt: '64px', // header
+        flex: 1,
+        overflow: 'hidden',
       }}
     >
       {/* Chat area */}
@@ -89,7 +86,7 @@ export default function ChatView({
           }),
         }}
       >
-        {/* Sub-header with session info */}
+        {/* Sub-header with session name */}
         <Box
           sx={{
             display: 'flex',
@@ -101,15 +98,6 @@ export default function ChatView({
             backgroundColor: theme.palette.background.default,
           }}
         >
-          <Tooltip title="Back to sessions">
-            <IconButton
-              onClick={onBackToSessions}
-              size="small"
-              sx={{ color: theme.palette.text.secondary }}
-            >
-              <ArrowBackIosNewIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
           <Typography
             variant="body1"
             sx={{
