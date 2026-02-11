@@ -1,12 +1,26 @@
 'use client';
 
-import React, { useRef, useEffect } from 'react';
-import { Box, Typography, useTheme, Fade, Chip } from '@mui/material';
+import React, { useRef, useEffect, useState } from 'react';
+import {
+  Box,
+  Typography,
+  useTheme,
+  Fade,
+  Chip,
+  Collapse,
+  IconButton,
+  Divider,
+} from '@mui/material';
 import PsychologyOutlinedIcon from '@mui/icons-material/PsychologyOutlined';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
+import AccountTreeOutlinedIcon from '@mui/icons-material/AccountTreeOutlined';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { useAgentThoughts } from '../../hooks/useAgentThoughts';
+import { agentColors } from '../../theme/agentColors';
 import type { ThoughtStep } from '../../types/agent';
 
 /** Maps backend agent_name values to display labels and colors */
@@ -15,6 +29,13 @@ const agentMeta: Record<string, { label: string; color: string }> = {
   research_agent: { label: 'Research Agent', color: '#5856D6' },
   analysis_agent: { label: 'Analysis Agent', color: '#FF9500' },
   summary_agent: { label: 'Summary Agent', color: '#34C759' },
+};
+
+const agentDisplayNames: Record<string, string> = {
+  root_agent: 'Root Agent',
+  research_agent: 'Research Agent',
+  analysis_agent: 'Analysis Agent',
+  summary_agent: 'Summary Agent',
 };
 
 function ThoughtItem({ step }: { step: ThoughtStep }) {
@@ -109,8 +130,22 @@ function ThoughtItem({ step }: { step: ThoughtStep }) {
 
 export default function ThoughtsPanel() {
   const theme = useTheme();
-  const { thoughtStream, hasThoughts, activeThoughts } = useAgentThoughts();
+  const colors = theme.palette.mode === 'dark' ? agentColors.dark : agentColors.light;
+  const {
+    thoughtStream,
+    hasThoughts,
+    activeThoughts,
+    thoughtSummary,
+    thoughtSummaryAgent,
+    delegatedAgent,
+    delegationChain,
+    thinkingTokensTotal,
+  } = useAgentThoughts();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [summaryExpanded, setSummaryExpanded] = useState(true);
+
+  // Filter out thought summary entries from the timeline (shown separately)
+  const timelineSteps = thoughtStream.filter((t) => !t.is_thought_summary);
 
   // Auto-scroll to bottom when new thoughts arrive
   useEffect(() => {
@@ -165,11 +200,28 @@ export default function ThoughtsPanel() {
               }}
             />
           )}
+          {thinkingTokensTotal > 0 && activeThoughts.length === 0 && (
+            <Chip
+              label={`${thinkingTokensTotal} thinking tokens`}
+              size="small"
+              sx={{
+                ml: 'auto',
+                height: 20,
+                fontSize: 10,
+                fontWeight: 500,
+                backgroundColor:
+                  theme.palette.mode === 'dark'
+                    ? 'rgba(255,255,255,0.06)'
+                    : 'rgba(0,0,0,0.04)',
+                color: theme.palette.text.secondary,
+              }}
+            />
+          )}
         </Box>
 
         {/* Panel content */}
         <Box ref={scrollRef} sx={{ flex: 1, overflowY: 'auto', px: 1.5, py: 1.5 }}>
-          {!hasThoughts ? (
+          {!hasThoughts && !thoughtSummary && delegationChain.length === 0 ? (
             <Box
               sx={{
                 textAlign: 'center',
@@ -183,10 +235,169 @@ export default function ThoughtsPanel() {
               </Typography>
             </Box>
           ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-              {thoughtStream.map((step) => (
-                <ThoughtItem key={step.id} step={step} />
-              ))}
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              {/* ── Tier 1: Gemini Thought Summary ── */}
+              {thoughtSummary && (
+                <Box
+                  sx={{
+                    borderRadius: 2,
+                    backgroundColor: colors.thoughtSummary,
+                    borderLeft: `3px solid ${colors.thoughtSummaryBorder}`,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Box
+                    onClick={() => setSummaryExpanded((p) => !p)}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.75,
+                      px: 1.5,
+                      py: 1,
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                    }}
+                  >
+                    <PsychologyOutlinedIcon
+                      sx={{ fontSize: 16, color: colors.thoughtSummaryBorder }}
+                    />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: colors.thoughtSummaryText,
+                      }}
+                    >
+                      Model Thinking
+                    </Typography>
+                    {thoughtSummaryAgent && (
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontSize: 11,
+                          color: colors.thoughtSummaryText,
+                          opacity: 0.7,
+                        }}
+                      >
+                        ({agentDisplayNames[thoughtSummaryAgent] ?? thoughtSummaryAgent})
+                      </Typography>
+                    )}
+                    <Box sx={{ flex: 1 }} />
+                    <IconButton size="small" sx={{ p: 0.25 }}>
+                      {summaryExpanded ? (
+                        <ExpandLessIcon sx={{ fontSize: 14, color: colors.thoughtSummaryText }} />
+                      ) : (
+                        <ExpandMoreIcon sx={{ fontSize: 14, color: colors.thoughtSummaryText }} />
+                      )}
+                    </IconButton>
+                  </Box>
+                  <Collapse in={summaryExpanded}>
+                    <Box sx={{ px: 1.5, pb: 1.5, pt: 0 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontSize: 13,
+                          lineHeight: 1.6,
+                          fontStyle: 'italic',
+                          color: colors.thoughtSummaryText,
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {thoughtSummary}
+                      </Typography>
+                    </Box>
+                  </Collapse>
+                </Box>
+              )}
+
+              {/* ── Tier 2: Agent Delegation Indicator ── */}
+              {delegationChain.length > 0 && (
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 0.75,
+                    px: 1.5,
+                    py: 1,
+                    borderRadius: 2,
+                    backgroundColor: colors.delegationBadge,
+                    border: `1px solid ${colors.delegationBadgeBorder}`,
+                  }}
+                >
+                  <AccountTreeOutlinedIcon
+                    sx={{ fontSize: 16, color: colors.delegationBadgeText, mt: 0.25 }}
+                  />
+                  <Box>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: colors.delegationBadgeText,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      Current Delegation
+                    </Typography>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 0.5,
+                        mt: 0.5,
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      {delegationChain.map((agent, i) => {
+                        const isActive = agent === delegatedAgent;
+                        const displayName = agentDisplayNames[agent] ?? agent;
+                        return (
+                          <React.Fragment key={`${agent}-${i}`}>
+                            {i > 0 && (
+                              <ArrowForwardIosIcon
+                                sx={{
+                                  fontSize: 8,
+                                  color: colors.delegationBadgeText,
+                                  opacity: 0.5,
+                                }}
+                              />
+                            )}
+                            <Typography
+                              component="span"
+                              sx={{
+                                fontSize: 12,
+                                fontWeight: isActive ? 700 : 400,
+                                color: colors.delegationBadgeText,
+                                opacity: isActive ? 1 : 0.7,
+                              }}
+                            >
+                              {displayName}
+                              {isActive && ' ●'}
+                            </Typography>
+                          </React.Fragment>
+                        );
+                      })}
+                    </Box>
+                  </Box>
+                </Box>
+              )}
+
+              {/* ── Tier 3: Agent Execution Timeline ── */}
+              {timelineSteps.length > 0 && (
+                <>
+                  {(thoughtSummary || delegationChain.length > 0) && (
+                    <Divider sx={{ my: 0.5, opacity: 0.5 }} />
+                  )}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                    {timelineSteps.map((step) => (
+                      <ThoughtItem key={step.id} step={step} />
+                    ))}
+                  </Box>
+                </>
+              )}
             </Box>
           )}
         </Box>

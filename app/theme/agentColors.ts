@@ -16,6 +16,14 @@ export const agentColors = {
     running: '#FF9500',
     completed: '#34C759',
     failed: '#FF3B30',
+    // Thought summary colors
+    thoughtSummary: '#F3E8FF',
+    thoughtSummaryBorder: '#D1B3FF',
+    thoughtSummaryText: '#4A148C',
+    // Delegation badge colors
+    delegationBadge: '#E0F2F1',
+    delegationBadgeBorder: '#80CBC4',
+    delegationBadgeText: '#004D40',
   },
   dark: {
     input: '#0D2137',
@@ -32,5 +40,13 @@ export const agentColors = {
     running: '#FF9F0A',
     completed: '#30D158',
     failed: '#FF453A',
+    // Thought summary colors
+    thoughtSummary: '#2D1B4E',
+    thoughtSummaryBorder: '#7C4DFF',
+    thoughtSummaryText: '#CE93D8',
+    // Delegation badge colors
+    delegationBadge: '#1A3A36',
+    delegationBadgeBorder: '#4DB6AC',
+    delegationBadgeText: '#80CBC4',
   },
 } as const;

@@ -6,6 +6,8 @@ import { CopilotChat } from '@copilotkit/react-ui';
 import { useCoAgentStateRender } from '@copilotkit/react-core';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
 import ThoughtsPanel from '../AgentThoughts/ThoughtsPanel';
+import ThoughtSummaryBlock from './ThoughtSummaryBlock';
+import AgentDelegationBadge from './AgentDelegationBadge';
 import type { Session } from '../../types/session';
 import type { CoAgentState } from '../../types/agent';
 
@@ -20,46 +22,75 @@ export default function ChatView({
 }: ChatViewProps) {
   const theme = useTheme();
 
-  // Optional: show a small in-chat progress indicator for active thoughts
+  // Show in-chat progress indicator + thought summary + delegation badge
   useCoAgentStateRender<CoAgentState>({
     name: 'my_agent',
     render: ({ state }) => {
       const running = (state.thought_stream ?? []).filter(
         (t) => t.status === 'running',
       );
-      if (!running.length) return null;
+      const thoughtSummary = state.thought_summary ?? null;
+      const delegationChain = state.delegation_chain ?? [];
+      const delegatedAgent = state.delegated_agent ?? null;
+
+      const hasContent = running.length > 0 || (thoughtsEnabled && (thoughtSummary || delegationChain.length > 0));
+      if (!hasContent) return null;
+
       return (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            p: 1.5,
-            borderRadius: 1.5,
-            bgcolor:
-              theme.palette.mode === 'dark'
-                ? 'rgba(255,255,255,0.04)'
-                : 'rgba(0,0,0,0.03)',
-            my: 1,
-          }}
-        >
-          <AutorenewIcon
-            sx={{
-              fontSize: 16,
-              color: theme.palette.primary.main,
-              animation: 'spin 1s linear infinite',
-              '@keyframes spin': {
-                '0%': { transform: 'rotate(0deg)' },
-                '100%': { transform: 'rotate(360deg)' },
-              },
-            }}
-          />
-          <Typography
-            variant="body2"
-            sx={{ fontSize: 12, color: theme.palette.text.secondary }}
-          >
-            {running[running.length - 1].message}
-          </Typography>
+        <Box sx={{ my: 1 }}>
+          {/* Thought summary block — only when toggle is ON */}
+          {thoughtsEnabled && thoughtSummary && (
+            <ThoughtSummaryBlock
+              summary={thoughtSummary}
+              agentName={state.thought_summary_agent ?? undefined}
+              defaultExpanded
+            />
+          )}
+
+          {/* Delegation badge — only when toggle is ON */}
+          {thoughtsEnabled && delegationChain.length > 0 && (
+            <Box sx={{ mb: 0.5 }}>
+              <AgentDelegationBadge
+                delegationChain={delegationChain}
+                delegatedAgent={delegatedAgent}
+              />
+            </Box>
+          )}
+
+          {/* Running thought indicator */}
+          {running.length > 0 && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                p: 1.5,
+                borderRadius: 1.5,
+                bgcolor:
+                  theme.palette.mode === 'dark'
+                    ? 'rgba(255,255,255,0.04)'
+                    : 'rgba(0,0,0,0.03)',
+              }}
+            >
+              <AutorenewIcon
+                sx={{
+                  fontSize: 16,
+                  color: theme.palette.primary.main,
+                  animation: 'spin 1s linear infinite',
+                  '@keyframes spin': {
+                    '0%': { transform: 'rotate(0deg)' },
+                    '100%': { transform: 'rotate(360deg)' },
+                  },
+                }}
+              />
+              <Typography
+                variant="body2"
+                sx={{ fontSize: 12, color: theme.palette.text.secondary }}
+              >
+                {running[running.length - 1].message}
+              </Typography>
+            </Box>
+          )}
         </Box>
       );
     },

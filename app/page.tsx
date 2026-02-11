@@ -62,13 +62,14 @@ export default function Page() {
     [deleteSession]
   );
 
-  // Build CopilotKit headers with auth token
+  // Build CopilotKit headers with auth token and thoughts toggle
   const copilotHeaders = useMemo(() => {
     const token = getStoredToken();
     const headers: Record<string, string> = {};
     if (token) headers['Authorization'] = `Bearer ${token}`;
+    headers['x-show-thoughts'] = thoughtsEnabled ? 'true' : 'false';
     return headers;
-  }, [user]); // re-compute when user changes (login/logout)
+  }, [user, thoughtsEnabled]); // re-compute when user or toggle changes
 
   // Login view
   if (!isAuthenticated) {
