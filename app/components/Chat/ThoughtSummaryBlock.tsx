@@ -6,6 +6,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import PsychologyOutlinedIcon from '@mui/icons-material/PsychologyOutlined';
 import { agentColors } from '../../theme/agentColors';
+import AgentDelegationBadge from './AgentDelegationBadge';
 
 interface ThoughtSummaryBlockProps {
   /** The Gemini thought summary text */
@@ -14,6 +15,10 @@ interface ThoughtSummaryBlockProps {
   agentName?: string;
   /** Start expanded (true for latest message, false for older) */
   defaultExpanded?: boolean;
+  /** Delegation chain, e.g. ["root_agent", "research_agent"] */
+  delegationChain?: string[];
+  /** Currently active agent */
+  delegatedAgent?: string | null;
 }
 
 /**
@@ -24,6 +29,8 @@ export default function ThoughtSummaryBlock({
   summary,
   agentName,
   defaultExpanded = true,
+  delegationChain,
+  delegatedAgent,
 }: ThoughtSummaryBlockProps) {
   const theme = useTheme();
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -112,6 +119,16 @@ export default function ThoughtSummaryBlock({
           >
             {summary}
           </Typography>
+
+          {/* Delegation badge — inside the thought bubble */}
+          {delegationChain && delegationChain.length > 0 && (
+            <Box sx={{ mt: 1 }}>
+              <AgentDelegationBadge
+                delegationChain={delegationChain}
+                delegatedAgent={delegatedAgent}
+              />
+            </Box>
+          )}
         </Box>
       </Collapse>
     </Box>

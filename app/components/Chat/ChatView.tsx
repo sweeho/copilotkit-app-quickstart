@@ -5,9 +5,7 @@ import { Box, Typography, useTheme } from '@mui/material';
 import { CopilotChat } from '@copilotkit/react-ui';
 import { useCoAgentStateRender } from '@copilotkit/react-core';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
-import ThoughtsPanel from '../AgentThoughts/ThoughtsPanel';
 import ThoughtSummaryBlock from './ThoughtSummaryBlock';
-import AgentDelegationBadge from './AgentDelegationBadge';
 import type { Session } from '../../types/session';
 import type { CoAgentState } from '../../types/agent';
 
@@ -38,23 +36,15 @@ export default function ChatView({
 
       return (
         <Box sx={{ my: 1 }}>
-          {/* Thought summary block — only when toggle is ON */}
+          {/* Unified inline thought bubble with delegation badge inside */}
           {thoughtsEnabled && thoughtSummary && (
             <ThoughtSummaryBlock
               summary={thoughtSummary}
               agentName={state.thought_summary_agent ?? undefined}
+              delegationChain={delegationChain}
+              delegatedAgent={delegatedAgent}
               defaultExpanded
             />
-          )}
-
-          {/* Delegation badge — only when toggle is ON */}
-          {thoughtsEnabled && delegationChain.length > 0 && (
-            <Box sx={{ mb: 0.5 }}>
-              <AgentDelegationBadge
-                delegationChain={delegationChain}
-                delegatedAgent={delegatedAgent}
-              />
-            </Box>
           )}
 
           {/* Running thought indicator */}
@@ -100,23 +90,11 @@ export default function ChatView({
     <Box
       sx={{
         display: 'flex',
-        flexDirection: 'row',
+        flexDirection: 'column',
         flex: 1,
         overflow: 'hidden',
       }}
     >
-      {/* Chat area */}
-      <Box
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          minWidth: 0,
-          transition: theme.transitions.create('flex', {
-            duration: theme.transitions.duration.standard,
-          }),
-        }}
-      >
         {/* Sub-header with session name */}
         <Box
           sx={{
@@ -166,12 +144,6 @@ export default function ChatView({
             className="copilotKitChat"
           />
         </Box>
-      </Box>
-
-      {/* Thoughts panel */}
-      {thoughtsEnabled && (
-        <ThoughtsPanel />
-      )}
     </Box>
   );
 }
