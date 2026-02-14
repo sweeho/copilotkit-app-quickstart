@@ -1,68 +1,86 @@
 'use client';
 
 import React from 'react';
-import { Box, IconButton, Tooltip, Typography, useTheme } from '@mui/material';
-import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import { Box, Typography, useTheme } from '@mui/material';
 import { CopilotChat } from '@copilotkit/react-ui';
 import { useCoAgentStateRender } from '@copilotkit/react-core';
 import AutorenewIcon from '@mui/icons-material/Autorenew';
-import ThoughtsPanel from '../AgentThoughts/ThoughtsPanel';
+import ThoughtSummaryBlock from './ThoughtSummaryBlock';
 import type { Session } from '../../types/session';
 import type { CoAgentState } from '../../types/agent';
 
 interface ChatViewProps {
   session: Session;
   thoughtsEnabled: boolean;
-  onBackToSessions: () => void;
 }
 
 export default function ChatView({
   session,
   thoughtsEnabled,
-  onBackToSessions,
 }: ChatViewProps) {
   const theme = useTheme();
 
-  // Optional: show a small in-chat progress indicator for active thoughts
+  // Show in-chat progress indicator + thought summary + delegation badge
   useCoAgentStateRender<CoAgentState>({
     name: 'my_agent',
     render: ({ state }) => {
       const running = (state.thought_stream ?? []).filter(
         (t) => t.status === 'running',
       );
-      if (!running.length) return null;
+      const thoughtSummary = state.thought_summary ?? null;
+      const delegationChain = state.delegation_chain ?? [];
+      const delegatedAgent = state.delegated_agent ?? null;
+
+      const hasContent = running.length > 0 || (thoughtsEnabled && (thoughtSummary || delegationChain.length > 0));
+      if (!hasContent) return null;
+
       return (
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            p: 1.5,
-            borderRadius: 1.5,
-            bgcolor:
-              theme.palette.mode === 'dark'
-                ? 'rgba(255,255,255,0.04)'
-                : 'rgba(0,0,0,0.03)',
-            my: 1,
-          }}
-        >
-          <AutorenewIcon
-            sx={{
-              fontSize: 16,
-              color: theme.palette.primary.main,
-              animation: 'spin 1s linear infinite',
-              '@keyframes spin': {
-                '0%': { transform: 'rotate(0deg)' },
-                '100%': { transform: 'rotate(360deg)' },
-              },
-            }}
-          />
-          <Typography
-            variant="body2"
-            sx={{ fontSize: 12, color: theme.palette.text.secondary }}
-          >
-            {running[running.length - 1].message}
-          </Typography>
+        <Box sx={{ my: 1 }}>
+          {/* Unified inline thought bubble with delegation badge inside */}
+          {thoughtsEnabled && thoughtSummary && (
+            <ThoughtSummaryBlock
+              summary={thoughtSummary}
+              agentName={state.thought_summary_agent ?? undefined}
+              delegationChain={delegationChain}
+              delegatedAgent={delegatedAgent}
+              defaultExpanded
+            />
+          )}
+
+          {/* Running thought indicator */}
+          {running.length > 0 && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                p: 1.5,
+                borderRadius: 1.5,
+                bgcolor:
+                  theme.palette.mode === 'dark'
+                    ? 'rgba(255,255,255,0.04)'
+                    : 'rgba(0,0,0,0.03)',
+              }}
+            >
+              <AutorenewIcon
+                sx={{
+                  fontSize: 16,
+                  color: theme.palette.primary.main,
+                  animation: 'spin 1s linear infinite',
+                  '@keyframes spin': {
+                    '0%': { transform: 'rotate(0deg)' },
+                    '100%': { transform: 'rotate(360deg)' },
+                  },
+                }}
+              />
+              <Typography
+                variant="body2"
+                sx={{ fontSize: 12, color: theme.palette.text.secondary }}
+              >
+                {running[running.length - 1].message}
+              </Typography>
+            </Box>
+          )}
         </Box>
       );
     },
@@ -72,24 +90,12 @@ export default function ChatView({
     <Box
       sx={{
         display: 'flex',
-        flexDirection: 'row',
-        height: '100vh',
-        pt: '64px', // header
+        flexDirection: 'column',
+        flex: 1,
+        overflow: 'hidden',
       }}
     >
-      {/* Chat area */}
-      <Box
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          minWidth: 0,
-          transition: theme.transitions.create('flex', {
-            duration: theme.transitions.duration.standard,
-          }),
-        }}
-      >
-        {/* Sub-header with session info */}
+        {/* Sub-header with session name */}
         <Box
           sx={{
             display: 'flex',
@@ -101,15 +107,6 @@ export default function ChatView({
             backgroundColor: theme.palette.background.default,
           }}
         >
-          <Tooltip title="Back to sessions">
-            <IconButton
-              onClick={onBackToSessions}
-              size="small"
-              sx={{ color: theme.palette.text.secondary }}
-            >
-              <ArrowBackIosNewIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
           <Typography
             variant="body1"
             sx={{
@@ -147,12 +144,6 @@ export default function ChatView({
             className="copilotKitChat"
           />
         </Box>
-      </Box>
-
-      {/* Thoughts panel */}
-      {thoughtsEnabled && (
-        <ThoughtsPanel />
-      )}
     </Box>
   );
 }

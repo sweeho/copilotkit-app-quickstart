@@ -1,102 +1,80 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import type { Session, ChatMessage } from '../types/session';
+import type { Session } from '../types/session';
+import * as sessionService from '../services/sessionService';
+import { useAuth } from './AuthContext';
 
 interface SessionContextValue {
   sessions: Session[];
   activeSession: Session | null;
-  messages: ChatMessage[];
-  createSession: (name?: string) => Session;
+  isLoading: boolean;
+  error: string | null;
+  loadSessions: () => Promise<void>;
+  createSession: (name?: string) => Promise<Session>;
   selectSession: (id: string) => void;
-  deleteSession: (id: string) => void;
-  addMessage: (role: 'user' | 'assistant', content: string, agentExecutionId?: string) => ChatMessage;
+  renameSession: (id: string, newName: string) => Promise<void>;
+  deleteSession: (id: string) => Promise<void>;
   clearActiveSession: () => void;
 }
 
 const SessionContext = createContext<SessionContextValue>({
   sessions: [],
   activeSession: null,
-  messages: [],
-  createSession: () => ({} as Session),
+  isLoading: false,
+  error: null,
+  loadSessions: async () => {},
+  createSession: async () => ({} as Session),
   selectSession: () => {},
-  deleteSession: () => {},
-  addMessage: () => ({} as ChatMessage),
+  renameSession: async () => {},
+  deleteSession: async () => {},
   clearActiveSession: () => {},
 });
 
 export const useSession = () => useContext(SessionContext);
 
-const SESSIONS_KEY = 'agent-studio-sessions';
-const MESSAGES_KEY = 'agent-studio-messages';
-
-function loadSessions(): Session[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const data = localStorage.getItem(SESSIONS_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveSessions(sessions: Session[]) {
-  localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
-}
-
-function loadMessages(sessionId: string): ChatMessage[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const data = localStorage.getItem(`${MESSAGES_KEY}-${sessionId}`);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveMessages(sessionId: string, messages: ChatMessage[]) {
-  localStorage.setItem(`${MESSAGES_KEY}-${sessionId}`, JSON.stringify(messages));
-}
-
-function generateSessionName(): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.toLocaleString('en-US', { month: 'short' });
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  const seconds = String(now.getSeconds()).padStart(2, '0');
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
-}
-
 export function SessionProvider({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Load sessions on mount
-  useEffect(() => {
-    setSessions(loadSessions());
+  const loadSessions = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await sessionService.listSessions();
+      setSessions(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load sessions');
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
-  const createSession = useCallback((name?: string) => {
-    const now = new Date().toISOString();
-    const session: Session = {
-      id: uuidv4(),
-      name: name || generateSessionName(),
-      createdAt: now,
-      updatedAt: now,
-      messageCount: 0,
-    };
-    setSessions((prev) => {
-      const updated = [session, ...prev];
-      saveSessions(updated);
-      return updated;
-    });
-    setActiveSession(session);
-    setMessages([]);
-    return session;
+  // Load sessions when user authenticates
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadSessions();
+    } else {
+      setSessions([]);
+      setActiveSession(null);
+    }
+  }, [isAuthenticated, loadSessions]);
+
+  const createSession = useCallback(async (name?: string) => {
+    setError(null);
+    try {
+      const session = await sessionService.createSession(name);
+      setSessions((prev) => [session, ...prev]);
+      setActiveSession(session);
+      return session;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to create session';
+      setError(message);
+      throw err;
+    }
   }, []);
 
   const selectSession = useCallback((id: string) => {
@@ -104,70 +82,39 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       const session = prev.find((s) => s.id === id);
       if (session) {
         setActiveSession(session);
-        setMessages(loadMessages(id));
       }
       return prev;
     });
   }, []);
 
-  const deleteSession = useCallback(
-    (id: string) => {
-      setSessions((prev) => {
-        const updated = prev.filter((s) => s.id !== id);
-        saveSessions(updated);
-        return updated;
-      });
-      localStorage.removeItem(`${MESSAGES_KEY}-${id}`);
-      if (activeSession?.id === id) {
-        setActiveSession(null);
-        setMessages([]);
-      }
-    },
-    [activeSession]
-  );
+  const renameSession = useCallback(async (id: string, newName: string) => {
+    setError(null);
+    try {
+      const updated = await sessionService.updateSession(id, { session_name: newName });
+      setSessions((prev) =>
+        prev.map((s) => (s.id === id ? updated : s))
+      );
+      setActiveSession((prev) => (prev?.id === id ? updated : prev));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to rename session');
+      throw err;
+    }
+  }, []);
 
-  const addMessage = useCallback(
-    (role: 'user' | 'assistant', content: string, agentExecutionId?: string) => {
-      if (!activeSession) throw new Error('No active session');
-      const msg: ChatMessage = {
-        id: uuidv4(),
-        sessionId: activeSession.id,
-        role,
-        content,
-        timestamp: new Date().toISOString(),
-        agentExecutionId,
-      };
-      setMessages((prev) => {
-        const updated = [...prev, msg];
-        saveMessages(activeSession.id, updated);
-        return updated;
-      });
-      // Update session metadata
-      setSessions((prev) => {
-        const updated = prev.map((s) =>
-          s.id === activeSession.id
-            ? {
-                ...s,
-                updatedAt: msg.timestamp,
-                messageCount: s.messageCount + 1,
-                lastMessagePreview: content.substring(0, 80),
-              }
-            : s
-        );
-        saveSessions(updated);
-        // Also update activeSession reference
-        const updatedActive = updated.find((s) => s.id === activeSession.id);
-        if (updatedActive) setActiveSession(updatedActive);
-        return updated;
-      });
-      return msg;
-    },
-    [activeSession]
-  );
+  const deleteSession = useCallback(async (id: string) => {
+    setError(null);
+    try {
+      await sessionService.deleteSession(id);
+      setSessions((prev) => prev.filter((s) => s.id !== id));
+      setActiveSession((prev) => (prev?.id === id ? null : prev));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete session');
+      throw err;
+    }
+  }, []);
 
   const clearActiveSession = useCallback(() => {
     setActiveSession(null);
-    setMessages([]);
   }, []);
 
   return (
@@ -175,11 +122,13 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       value={{
         sessions,
         activeSession,
-        messages,
+        isLoading,
+        error,
+        loadSessions,
         createSession,
         selectSession,
+        renameSession,
         deleteSession,
-        addMessage,
         clearActiveSession,
       }}
     >

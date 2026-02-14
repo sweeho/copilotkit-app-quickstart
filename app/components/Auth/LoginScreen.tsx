@@ -8,35 +8,47 @@ import {
   TextField,
   Button,
   Typography,
+  Alert,
+  CircularProgress,
   useTheme,
 } from '@mui/material';
 import SmartToyOutlinedIcon from '@mui/icons-material/SmartToyOutlined';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
 interface LoginScreenProps {
-  onLogin: (username: string) => void;
+  onLogin: (email: string, password: string) => Promise<void>;
 }
 
 export default function LoginScreen({ onLogin }: LoginScreenProps) {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const theme = useTheme();
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
-      const trimmed = username.trim();
-      if (!trimmed) {
-        setError('Please enter a username');
+      const trimmedEmail = email.trim();
+      if (!trimmedEmail) {
+        setError('Please enter your email');
         return;
       }
-      if (trimmed.length < 2) {
-        setError('Username must be at least 2 characters');
+      if (!password) {
+        setError('Please enter your password');
         return;
       }
-      onLogin(trimmed);
+      setIsLoading(true);
+      setError('');
+      try {
+        await onLogin(trimmedEmail, password);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Login failed');
+      } finally {
+        setIsLoading(false);
+      }
     },
-    [username, onLogin]
+    [email, password, onLogin]
   );
 
   return (
@@ -98,28 +110,49 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
               </Typography>
             </Box>
 
+            {/* Error alert */}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
+                {error}
+              </Alert>
+            )}
+
             {/* Form */}
             <Box component="form" onSubmit={handleSubmit}>
               <TextField
                 fullWidth
-                label="Username"
-                value={username}
+                label="Email"
+                type="email"
+                value={email}
                 onChange={(e) => {
-                  setUsername(e.target.value);
+                  setEmail(e.target.value);
                   setError('');
                 }}
-                error={!!error}
-                helperText={error || ' '}
                 autoFocus
-                autoComplete="username"
+                autoComplete="email"
+                disabled={isLoading}
                 sx={{ mb: 2 }}
+              />
+              <TextField
+                fullWidth
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError('');
+                }}
+                autoComplete="current-password"
+                disabled={isLoading}
+                sx={{ mb: 3 }}
               />
               <Button
                 type="submit"
                 fullWidth
                 variant="contained"
                 size="large"
-                endIcon={<ArrowForwardIcon />}
+                disabled={isLoading}
+                endIcon={isLoading ? <CircularProgress size={20} color="inherit" /> : <ArrowForwardIcon />}
                 sx={{
                   py: 1.5,
                   fontSize: 15,
@@ -127,7 +160,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
                   borderRadius: 2,
                 }}
               >
-                Continue
+                {isLoading ? 'Signing In...' : 'Sign In'}
               </Button>
             </Box>
           </CardContent>
@@ -138,7 +171,7 @@ export default function LoginScreen({ onLogin }: LoginScreenProps) {
           color="text.secondary"
           sx={{ mt: 4, fontSize: 12 }}
         >
-          Powered by Google ADK & CopilotKit
+          Contact admin for access
         </Typography>
     </Box>
   );
